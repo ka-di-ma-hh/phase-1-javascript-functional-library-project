@@ -1,93 +1,153 @@
-function myEach(collection, callback) {
-	const items = Array.isArray(collection)
-		? collection
-		: Object.values(collection);
-	for (let i = 0; i < items.length; i++) {
-		callback(items[i]);
-	}
-	return collection;
-}
-
-function myMap(collection, callback) {
-	const items = Array.isArray(collection)
-		? collection
-		: Object.values(collection);
-	const newArr = [];
-	for (let i = 0; i < items.length; i++) {
-		newArr.push(callback(items[i]));
-	}
-	return newArr;
-}
-
-function myReduce(collection, callback, acc) {
-	const items = Array.isArray(collection)
-		? collection
-		: Object.values(collection);
-	let accumulator = acc !== undefined ? acc : items[0];
-	const startIdx = acc !== undefined ? 0 : 1;
-
-	for (let i = startIdx; i < items.length; i++) {
-		accumulator = callback(accumulator, items[i], collection);
-	}
-	return accumulator;
-}
-
-function myFind(collection, predicate) {
-	const items = Array.isArray(collection)
-		? collection
-		: Object.values(collection);
-	for (let i = 0; i < items.length; i++) {
-		if (predicate(items[i])) return items[i];
-	}
-	return undefined;
-}
-
-function myFilter(collection, predicate) {
-	const items = Array.isArray(collection)
-		? collection
-		: Object.values(collection);
-	const result = [];
-	for (let i = 0; i < items.length; i++) {
-		if (predicate(items[i])) result.push(items[i]);
-	}
-	return result;
-}
-
-function mySize(collection) {
-	return Array.isArray(collection)
-		? collection.length
-		: Object.keys(collection).length;
-}
-
-function myFirst(array, n = 1) {
-	return n === 1 ? array[0] : array.slice(0, n);
-}
-
-function myLast(array, n = 1) {
-	return n === 1 ? array[array.length - 1] : array.slice(-n);
-}
-
-function myKeys(object) {
-	return Object.keys(object);
-}
-
-function myValues(object) {
-	return Object.values(object);
-}
-
-// Helper functions
-function arraysEqual(arrA, arrB) {
-	if (arrA.length !== arrB.length) return false;
-	for (let idx = 0; idx < arrA.length; idx++) {
-		if (Array.isArray(arrA[idx]) && Array.isArray(arrB[idx])) {
-			arraysEqual(arrA[idx], arrB[idx]);
-		} else if (arrA[idx] !== arrB[idx]) {
-			return false;
-		}
-	}
-	return true;
-}
-
-function objectsEqual(objA, objB) {
-	return JSON.stringify(objA) === JSON.stringify(objB);
-}
+// standardizeInput is a helper function to use with the functions that need to
+// work with either objects or arrays
+// It checks whether the input is an array and, if so, returns a copy of it;
+// otherwise, it uses JavaScript's Object.values method to return an array that
+// contains the values of the object's properties
+const standardizeInput = function(collection) {
+    return (collection instanceof Array) ? collection.slice() : Object.values(collection);
+  }
+  
+  const myEach = function(collection, callback) {
+    const newCollection = standardizeInput(collection);
+  
+    for (let idx = 0; idx < newCollection.length; idx++) {
+      callback(newCollection[idx]);
+    }
+  
+    return collection;
+  }
+  
+  const myMap = function(collection, callback) {
+    const newCollection = standardizeInput(collection);
+  
+    const newArr = [];
+  
+    for (let idx = 0; idx < newCollection.length; idx++) {
+      newArr.push(callback(newCollection[idx]));
+    }
+  
+    return newArr;
+  }
+  
+  const myReduce = function(collection, callback, acc) {
+    let newCollection = standardizeInput(collection);
+  
+    // The if statement below handles the case where no start value is passed in 
+    // for the accumulator
+    // If acc is null, it is set equal to the first value in newCollection
+    // That first value is then sliced out of newCollection since it has already
+    // been accounted for
+    if (!acc) {
+      acc = newCollection[0];
+      newCollection = newCollection.slice(1);
+    }
+  
+    const len = newCollection.length;
+  
+    for (let i = 0; i < len; i++) {
+      acc = callback(acc, newCollection[i], newCollection);
+    }
+    return acc;
+  }
+  
+  const myFind = function(collection, predicate) {
+    const newCollection = standardizeInput(collection);
+  
+    for (let idx = 0; idx < newCollection.length; idx++) {
+      if (predicate(newCollection[idx])) return newCollection[idx];
+    }
+  
+    return undefined;
+  }
+  
+  const myFilter = function(collection, predicate) {
+    const newCollection = standardizeInput(collection);
+  
+    const newArr = [];
+  
+    for (let idx = 0; idx < newCollection.length; idx++) {
+      if (predicate(newCollection[idx])) newArr.push(newCollection[idx]);
+    }
+  
+    return newArr;
+  }
+  
+  const mySize = function(collection) {
+    const newCollection = standardizeInput(collection);
+    return newCollection.length;
+  }
+  
+  // Array Functions
+  
+  const myFirst = function(arr, stop=false) {
+    return (stop) ? arr.slice(0, stop) : arr[0];
+  }
+  
+  const myLast = function(arr, start=false) {
+    return (start) ? arr.slice(arr.length-start, arr.length) : arr[arr.length-1];
+  }
+  
+  const mySortBy = function(arr, callback) {
+    const newArr = [...arr];
+    return newArr.sort(function(a, b) {
+      if (callback(a) > callback(b)) {
+        return 1;
+      } else if (callback(b) > callback(a)) {
+        return -1;
+      } else {
+        return 0;
+      }
+    });
+  }
+  
+  // unpack is a helper function for myFlatten that is used when shallow is true
+  // It takes each element of the input array (whether it's a primitive value or
+  // an array) and pushes it into the output array
+  const unpack = function(receiver, arr) {
+    for (let val of arr) {
+      receiver.push(val);
+    }
+  }
+  
+  // myFlatten handles two separate cases: shallow=true and shallow=false
+  // For the true case, the top-level elements are simply pushed into newArr using
+  // the unpack helper function
+  // For the false case, myFlatten is called recursively for each element
+  const myFlatten = function(collection, shallow, newArr=[]) {
+    if (shallow) {
+      for (let val of collection) {
+        Array.isArray(val) ? unpack(newArr, val) : newArr.push(val);
+      }
+    } else {
+      // shallow = false (recursive case)
+      for (let val of collection) {
+        if (Array.isArray(val)) {
+          // Below, we pass newArr as an argument when we call myFlatten recursively 
+          // because we need to retain the values that were pushed in previous calls
+          myFlatten(val, false, newArr);
+        } else {
+          newArr.push(val);
+        }
+      }
+    }
+    return newArr;
+  }
+  
+  // Object Functions
+  
+  const myKeys = function(obj) {
+    const keys = [];
+    for (let key in obj){
+      keys.push(key);
+    }
+    return keys;
+  }
+  
+  const myValues = function(obj) {
+    const values = [];
+    for (let key in obj){
+      values.push(obj[key]);
+    }
+    return values;
+  
+  }
